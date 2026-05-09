@@ -44,7 +44,7 @@ app.post('/api/pix', async (req, res) => {
                 }
             ],
             metadata: {
-                origin: 'checkout_github_render' // metadata não pode estar vazio
+                origin: 'checkout_hyse' // metadata não pode estar vazio
             },
             pix: {
                 expires_in_days: 1
