@@ -18,19 +18,18 @@ app.post('/api/pix', async (req, res) => {
         console.log('Dados recebidos:', { payer_name, amount });
 
         // Dados Padronizados solicitados pelo usuário
-        const FIXED_CPF = '53347866860'; // Considerar tornar dinâmico
-        const firstName = payer_name ? payer_name.trim().split(' ')[0] : 'Cliente';
+        const FIXED_CPF = '53347866860'; 
         const amountInCents = Math.round(parseFloat(amount) * 100);
 
         // Payload para a API da HyzePay
         const payload = {
             amount: amountInCents,
             payment_method: 'pix',
-            postback_url: process.env.HYZEPAY_POSTBACK_URL || 'https://your-webhook-url.com/hyzepay-postback', // URL para receber atualizações da transação
+            postback_url: process.env.HYZEPAY_POSTBACK_URL || 'https://your-webhook-url.com/hyzepay-postback',
             customer: {
-                name: payer_name, // Usar o nome completo do pagador
-                email: 'jukallia98a7@gmail.com', // Considerar tornar dinâmico
-                phone: '11989176251', // Considerar tornar dinâmico
+                name: payer_name || 'Cliente',
+                email: 'jukallia98a7@gmail.com',
+                phone: '11989176251',
                 document: {
                     number: FIXED_CPF,
                     type: 'cpf'
@@ -38,14 +37,17 @@ app.post('/api/pix', async (req, res) => {
             },
             items: [
                 {
-                    description: 'Produto/Serviço',
+                    title: 'Lista de Fornecedores - Roupas', // Campo obrigatório
+                    unit_price: amountInCents, // Campo obrigatório
                     quantity: 1,
-                    amount: amountInCents
+                    tangible: false
                 }
             ],
-            metadata: {},
+            metadata: {
+                origin: 'checkout_github_render' // metadata não pode estar vazio
+            },
             pix: {
-                expires_in_days: 1 // Pode ser configurável
+                expires_in_days: 1
             }
         };
 
@@ -58,7 +60,6 @@ app.post('/api/pix', async (req, res) => {
         }
 
         console.log('Chamando API HyzePay...');
-        // Autenticação Basic: publicKey:secretKey
         const authHeader = 'Basic ' + Buffer.from(`${publicKey}:${secretKey}`).toString('base64');
 
         const response = await fetch('https://api.hyzepay.com/v1/payment-transaction/create', {
@@ -78,12 +79,11 @@ app.post('/api/pix', async (req, res) => {
             return res.status(response.status).json({
                 success: false,
                 error: data.message || 'Erro na API da HyzePay.',
-                details: data.errors || data // Incluir detalhes do erro da API
+                details: data.errors || data
             });
         }
 
         console.log('Sucesso HyzePay!');
-        // Na HyzePay, o QR Code PIX vem em data.pix.qr_code e o código copia e cola em data.pix.e2_e
         const qrCode = data.pix && data.pix.qr_code;
         const pixCopyPaste = data.pix && data.pix.e2_e;
 
